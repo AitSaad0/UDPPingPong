@@ -5,7 +5,6 @@ import java.io.*;
 
 public class Client implements Runnable {
     private final int size = 1024;
-    private byte[] buff = new byte[size];
     private final int port = 900;
     private DatagramSocket ds;
 
@@ -14,47 +13,64 @@ public class Client implements Runnable {
     }
 
     public void sendMessage() {
-        try {
-            String message = "Ping";
-            buff = message.getBytes();
-            DatagramPacket packet = new DatagramPacket(buff, buff.length, InetAddress.getLocalHost(), 900);
-            ds.send(packet);
-            new Thread(()->{
-                receiveRes();
-            });
-        } catch (UnknownHostException e) {
-            System.out.println(e);
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
+            while (true) {
+                System.out.print("Enter message (type 'quit' to exit): ");
+                String message = reader.readLine();
+                if ("quit".equalsIgnoreCase(message.trim()))
+                    System.out.println("Quitting");
+                    System.exit(1);
+                byte[] buff = message.getBytes();
+                DatagramPacket packet = new DatagramPacket(buff, buff.length, InetAddress.getLocalHost(), port);
+                ds.send(packet);
+            }
         } catch (IOException e) {
             System.out.println(e);
         }
     }
 
     public void receiveRes() {
-        DatagramPacket packet = new DatagramPacket(buff, buff.length);
+        byte[] receivedBuff = new byte[size];
+        DatagramPacket packet = new DatagramPacket(receivedBuff, receivedBuff.length);
         try {
-            ds.receive(packet);
+            while (true) {
+                ds.receive(packet);
+                System.out.println();
+                System.out.println("Server says: " + new String(packet.getData(), 0, packet.getLength()));
+                System.out.print("Enter message (type 'quit' to exit): ");
+            }
         } catch (IOException e) {
-            System.out.println("couldn' t receive data " + e);
+            System.out.println("Couldn't receive data: " + e);
         }
-        System.out.println(new String(buff, 0, buff.length));
     }
 
     public void run() {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
-            while (true) {
-                String message = reader.readLine();
-                message.toLowerCase();
-                switch (message.trim()) {
-                    case "quit":
-                        System.out.println("Quitting...");
-                        return;
-                    default:
-                        sendMessage();
-                        break;
-                }
-            }
-        } catch (IOException e) {
 
-        }
+        new Thread(() -> {
+            receiveRes();
+        }).start();
+
+        new Thread(() -> {
+            sendMessage();
+        }).start();
+        ;
+
+        // try (BufferedReader reader = new BufferedReader(new
+        // InputStreamReader(System.in))) {
+        // while (true) {
+        // String message = reader.readLine();
+        // message.toLowerCase();
+        // switch (message.trim()) {
+        // case "quit":
+        // System.out.println("Quitting...");
+        // return;
+        // default:
+        // sendMessage();
+        // break;
+        // }
+        // }
+        // } catch (IOException e) {
+
+        // }
     }
 }

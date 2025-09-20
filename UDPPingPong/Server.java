@@ -21,42 +21,37 @@ public class Server implements Runnable {
         this.ds = ds;
     }
 
-   
-
     public void run() {
         ExecutorService pool = Executors.newFixedThreadPool(5);
         while (running) {
-            
 
             byte[] buff = new byte[size];
             DatagramPacket packet = new DatagramPacket(buff, buff.length);
-            
+
             try {
                 ds.receive(packet);
             } catch (IOException e) {
-                if (!running) break;
+                if (!running)
+                    break;
                 System.out.println("Error receiving packet: " + e.getMessage());
                 continue;
             }
-           
-           pool.execute(() -> {
-            String message = new String(packet.getData(), 0, packet.getLength());
-            System.out.println(message);
 
-            
-            byte[] reply = "Pong".getBytes();
-            DatagramPacket replyPacket = new DatagramPacket(reply, reply.length, packet.getAddress(), packet.getPort());
+            pool.execute(() -> {
+                String message = new String(packet.getData(), 0, packet.getLength());
+                System.out.println(message);
 
-            try{
-                Thread.sleep(4000);
-                ds.send(replyPacket);
-            } catch (IOException e) {
-                System.out.println("Error sending response: " + e.getMessage());
-            }catch(InterruptedException e){
-                System.out.println(e);
-            }
+                byte[] reply = "waealaykomsalam".getBytes();
+                DatagramPacket replyPacket = new DatagramPacket(reply, reply.length, packet.getAddress(),
+                        packet.getPort());
 
-           }); 
+                try {
+                    ds.send(replyPacket);
+                } catch (IOException e) {
+                    System.out.println("Error sending response: " + e.getMessage());
+                }
+
+            });
 
         }
 
